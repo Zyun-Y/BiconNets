@@ -114,7 +114,9 @@ For testing:
 make sure the datapath is correct.
 
 
-
+------------------------------------------------------------------------------------------------------------------------------------------------------
 
 3. Results evaluation (/evaluation)
 We use Matlab to evaluate the output saliency maps as did in: https://github.com/JosephChenHub/GCPANet
+
+The pretrained models and maps can be downloaded at: https://drive.google.com/drive/folders/1rHcOnsgDt--K1hEidlILP3CCqih7cpgI?usp=sharing
