@@ -17,12 +17,17 @@ If you want to construct the BiconNet based on your own network, there are four 
 1) replace your network's one-channel output fully connected layers with 8-channel FC layers.
 
 For training:
+
 2) generate the ground truth connectivity masks using the function 'sal2conn' in utils_bicon.py
-3) replace your own loss function with Bicon_loss: you can edit the connect_loss.py
+
+4) replace your own loss function with Bicon_loss: you can edit the connect_loss.py
 
 For testing:
+
 4) use the function 'bv_test' in utils_bicon.py after you get the 8-channel connectivity map output to get your final saliency prediction.
-2. Customize the BiconNet based on your own network. (/general)
+
+
+6. Customize the BiconNet based on your own network. (/general)
 If you want to construct the BiconNet based on your own network, there are four simple steps:
 
 1) replace your network's one-channel output fully connected layers with 8-channel FC layers.
