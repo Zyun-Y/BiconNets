@@ -43,7 +43,7 @@ For traing:
 	python train.py
 
 For testing:
-	cd /PoolNet/bicon/test
+	cd /MODEL_NAME/bicon/test
 	python test.py
 
 The pretrained models and maps can be downloaded from [Google Drive](https://drive.google.com/drive/folders/1rHcOnsgDt--K1hEidlILP3CCqih7cpgI?usp=sharing)
