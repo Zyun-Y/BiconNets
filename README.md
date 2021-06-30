@@ -2,7 +2,12 @@
 BiconNet: An Edge-preserved Connectivity-based Approach for Salient Object Detection
 ====
 Ziyun Yang, Somayyeh Soltanian-Zadeh and Sina Farsiu
+
 Paper at: https://arxiv.org/abs/2103.00334
+
+--------------------------------------------------------------------------
+
+
 
 Requirement: Pytorch 1.7.1
 
