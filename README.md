@@ -31,7 +31,7 @@ For training:
 For testing:
 4) use the function 'bv_test' in utils_bicon.py after you get the 8-channel connectivity map output to get your final saliency prediction.
 
-
+------------------------------------------------------------------------------------------------------------------------------------------------------
 2. Reproduce the results in the paper (/paper_result)
 
 (a) PoolNet
