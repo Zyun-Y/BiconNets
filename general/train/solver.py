@@ -1,3 +1,10 @@
+"""
+BiconNet: An Edge-preserved Connectivity-based Approach for Salient Object Detection
+Ziyun Yang, Somayyeh Soltanian-Zadeh and Sina Farsiu
+Codes from: https://github.com/Zyun-Y/BiconNets
+Paper: https://arxiv.org/abs/2103.00334
+"""
+
 from random import shuffle
 import sys
 import datetime
