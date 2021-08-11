@@ -2,7 +2,7 @@
 BiconNet: An Edge-preserved Connectivity-based Approach for Salient Object Detection
 ====
 Ziyun Yang, Somayyeh Soltanian-Zadeh and Sina Farsiu
-
+Recently accepted by Pattern Recognition.
 Paper at: https://arxiv.org/abs/2103.00334
 
 --------------------------------------------------------------------------
@@ -53,3 +53,7 @@ Results evaluation (/evaluation)
 We use Matlab to evaluate the output saliency maps as did in: https://github.com/JosephChenHub/GCPANet
 
 
+Citation
+-------------
+ you find this work useful in your research, please consider citing:
+"Z. Yang, S. Soltanian-Zadeh, and S. Farsiu, "BiconNet: An Edge-preserved Connectivity-based Approach for Salient Object Detection", Pattern Recognition, (In Press) 2021"
