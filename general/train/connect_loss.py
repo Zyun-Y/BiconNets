@@ -19,6 +19,10 @@ import matplotlib.pyplot as plt
 from skimage.io import imread, imsave
 import scipy.io as scio
 
+Directable={'upper_left':[-1,-1],'up':[0,-1],'upper_right':[1,-1],'left':[-1,0],'right':[1,0],'lower_left':[-1,1],'down':[0,1],'lower_right':[1,1]}
+TL_table = ['lower_right','down','lower_left','right','left','upper_right','up','upper_left']
+
+
 # hori_translation = torch.zeros([256,400])
 # for i in range(399):
 #     hori_translation[i,i+1] = torch.tensor(1.0)
@@ -28,46 +32,6 @@ import scipy.io as scio
 # hori_translation = hori_translation.double()
 # verti_translation = verti_translation.double()
 
-def Bilater_voting(c_map,hori_translation,verti_translation):
-    hori_translation = hori_translation.cuda()
-    verti_translation = verti_translation.cuda()
-    batch,channel, row, column = c_map.size()
-    vote_out = torch.zeros([batch,channel, row, column]).cuda()
-
-    # print(c_map[1,4].shape)
-    right = torch.bmm(c_map[:,4],hori_translation)
-    left = torch.bmm(c_map[:,3],hori_translation.transpose(2,1))
-    left_bottom = torch.bmm(verti_translation.transpose(2,1), c_map[:,5])
-    left_bottom = torch.bmm(left_bottom,hori_translation.transpose(2,1))
-    right_above = torch.bmm(verti_translation, c_map[:,2])
-    right_above= torch.bmm(right_above,hori_translation)
-    left_above = torch.bmm(verti_translation, c_map[:,0])
-    left_above = torch.bmm(left_above,hori_translation.transpose(2,1))
-    bottom = torch.bmm(verti_translation.transpose(2,1), c_map[:,6])
-    up = torch.bmm(verti_translation, c_map[:,1])
-    right_bottom = torch.bmm(verti_translation.transpose(2,1), c_map[:,7])
-    right_bottom = torch.bmm(right_bottom,hori_translation)
-
-    a1 = (c_map[:,3]) * (right)
-
-    # print(a1[0][0][100])
-    a2 = (c_map[:,4]) * (left)
-    a3 = (c_map[:,1]) * (bottom)
-    a4 = (c_map[:,6]) * (up)
-    a5 = (c_map[:,2]) * (left_bottom)
-    a6 = (c_map[:,5]) * (right_above)
-    a7 =(c_map[:,0]) * (right_bottom)
-    a8 =(c_map[:,7]) * (left_above)
-    vote_out[:,0] = a7
-    vote_out[:,1] = a3
-    vote_out[:,2] = a5
-    vote_out[:,3] = a1
-    vote_out[:,4] = a2
-    vote_out[:,5] = a6
-    vote_out[:,6] = a4
-    vote_out[:,7] = a8
-    # pred_mask = torch.max(torch.max(torch.max(torch.max(torch.max(torch.max(torch.max(a1,a2),a3),a4),a5),a6),a7),a8)
-    return vote_out
 
 
 
@@ -87,6 +51,8 @@ class bicon_loss(nn.Module):
         self.cross_entropy_loss = nn.BCELoss(reduction='sum')
         
     def forward(self, c_map, target, con_target):
+        num_class = 1
+        
         con_target = con_target.type(torch.FloatTensor).cuda()
 
         #find edge ground truth
@@ -100,21 +66,21 @@ class bicon_loss(nn.Module):
         c_map = F.sigmoid(c_map)
         
         # construct the translation matrix
-        hori_translation = torch.zeros([c_map.shape[0],c_map.shape[3],c_map.shape[3]])
+        hori_translation = torch.zeros([c_map.shape[0],num_class, c_map.shape[3],c_map.shape[3]])
         for i in range(c_map.shape[3]-1):
-            hori_translation[:,i,i+1] = torch.tensor(1.0)
-        verti_translation = torch.zeros([c_map.shape[0],c_map.shape[2],c_map.shape[2]])
+            hori_translation[:,:,i,i+1] = torch.tensor(1.0)
+        verti_translation = torch.zeros([c_map.shape[0],num_class,c_map.shape[2],c_map.shape[2]])
         for j in range(c_map.shape[2]-1):
-            verti_translation[:,j,j+1] = torch.tensor(1.0)
-        hori_translation = hori_translation.float()
-        verti_translation = verti_translation.float()
+            verti_translation[:,:,j,j+1] = torch.tensor(1.0)
+        self.hori_translation = hori_translation.float()
+        self.verti_translation = verti_translation.float()
 
         #bilateral voting
-        vote_out = Bilater_voting(c_map,hori_translation,verti_translation)
+        vote_out = self.Bilater_voting(c_map)
 
         #global map
-        glo_map = torch.mean(vote_out, dim=1)
-
+        glo_map, _ = torch.max(vote_out,dim=2)
+        vote_out = vote_out.squeeze(1)
         #decouple loss
         de_loss = edge_loss(glo_map,vote_out,edge,target)
 
@@ -123,3 +89,29 @@ class bicon_loss(nn.Module):
         loss =  0.8*conmap_l+de_loss+0.2*bimap_l
 
         return loss
+    
+    def shift_diag(self,img,shift):
+        ## shift = [1,1] moving right and down
+        # print(img.shape,self.hori_translation.shape)
+        batch,class_num, row, column = img.size()
+
+        if shift[0]: ###horizontal
+            img = torch.bmm(img.view(-1,row,column),self.hori_translation.view(-1,column,column)) if shift[0]==1 else torch.bmm(img.view(-1,row,column),self.hori_translation.transpose(3,2).view(-1,column,column))
+        if shift[1]: ###vertical
+            img = torch.bmm(self.verti_translation.transpose(3,2).view(-1,row,row),img.view(-1,row,column)) if shift[1]==1 else torch.bmm(self.verti_translation.view(-1,row,row),img.view(-1,row,column))
+        return img.view(batch,class_num, row, column)
+
+
+    def Bilater_voting(self,c_map):
+        c_map = c_map.view(c_map.shape[0],self.class_num,8,c_map.shape[2],c_map.shape[3])
+        batch,class_num,channel, row, column = c_map.size()
+
+
+        shifted_c_map = torch.zeros(c_map.size()).cuda()
+        for i in range(8):
+            shifted_c_map[:,:,i] = self.shift_diag(c_map[:,:,7-i].clone(),Directable[TL_table[i]])
+        vote_out = c_map*shifted_c_map
+
+#         pred_mask,_ = torch.max(vote_out,dim=2)
+        # print(pred_mask)
+        return vote_out#, bimap
