@@ -57,6 +57,6 @@ We use Matlab to evaluate the output saliency maps as did in: https://github.com
 
 Citation
 -------------
- you find this work useful in your research, please consider citing:
+If you find this work useful in your research, please consider citing:
  
 "Z. Yang, S. Soltanian-Zadeh, and S. Farsiu, "BiconNet: An Edge-preserved Connectivity-based Approach for Salient Object Detection", Pattern Recognition 121, 108231 (2022)"
