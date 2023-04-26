@@ -74,7 +74,7 @@ class Solver(object):
         with open(os.path.join(save, csv), 'w') as f:
             f.write('epoch, mae \n')
 
-        best_mae = 0
+        best_mae = 1
         step=0
         m=0
         db_size = len(train_loader)/real_batch
