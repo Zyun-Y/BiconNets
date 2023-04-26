@@ -79,7 +79,7 @@ class Solver(object):
         m=0
         db_size = len(train_loader)/real_batch
 
-        model.eval()
+        model.train()
         for epoch in range(num_epochs):
             total_loss = 0
             model.zero_grad()
