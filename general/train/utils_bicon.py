@@ -88,7 +88,7 @@ def shift_diag(img,shift,hori_translation,verti_translation):
 
 
 def ConMap2Mask_prob(c_map,hori_translation,verti_translation):
-    c_map = c_map.view(c_map.shape[0],1,8,c_map.shape[2],c_map.shape[3])
+    c_map = c_map.view(c_map.shape[0],-1,8,c_map.shape[2],c_map.shape[3])
     batch,class_num,channel, row, column = c_map.size()
 
     shifted_c_map = torch.zeros(c_map.size()).cuda()
