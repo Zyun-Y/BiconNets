@@ -23,32 +23,46 @@ Directable={'upper_left':[-1,-1],'up':[0,-1],'upper_right':[1,-1],'left':[-1,0],
 TL_table = ['lower_right','down','lower_left','right','left','upper_right','up','upper_left']
 
 
-# hori_translation = torch.zeros([256,400])
-# for i in range(399):
-#     hori_translation[i,i+1] = torch.tensor(1.0)
-# verti_translation = torch.zeros([300,300])
-# for j in range(299):
-#     verti_translation[j,j+1] = torch.tensor(1.0)
-# hori_translation = hori_translation.double()
-# verti_translation = verti_translation.double()
+class dice_loss(nn.Module):
+    def __init__(self):
+        super(dice_loss, self).__init__()
+
+    def soft_dice_coeff(self, y_pred,y_true):
+        smooth = 0.001  # may change
+        i = torch.sum(y_true,dim=(1,2))
+        j = torch.sum(y_pred,dim=(1,2))
+        intersection = torch.sum(y_true * y_pred,dim=(1,2))
+
+        score = (2. * intersection + smooth) / (i + j + smooth)
+
+        return (1-score)
+    def soft_dice_loss(self, y_pred,y_true):
+        loss = self.soft_dice_coeff(y_true, y_pred)
+        return loss.mean()
+
+    def __call__(self, y_pred,y_true):
+        b = self.soft_dice_loss(y_true, y_pred)
+        return b
 
 
+def edge_loss(vote_out,con_target):
+    # print(vote_out.shape,con_target.shape)
+    sum_conn = torch.sum(con_target.clone(),dim=1)
+    edge = torch.where((sum_conn<8) & (sum_conn>0),torch.full_like(sum_conn, 1),torch.full_like(sum_conn, 0))
 
+    pred_mask_min, _ = torch.min(vote_out.cuda(), dim=1)
 
-def edge_loss(glo_map,vote_out,edge,target):
-    pred_mask_min, _ = torch.min(vote_out, dim=1)
-    pred_mask_max,_ = torch.max(vote_out, dim=1)
-    pred_mask_min = 1-pred_mask_min
-    pred_mask_min = pred_mask_min * edge
-    decouple_map = glo_map*(1-edge)+pred_mask_min
+    pred_mask_min = pred_mask_min*edge
 
-    minloss = F.binary_cross_entropy(decouple_map.unsqueeze(1),target,reduction='sum')
-    return minloss
+    minloss = F.binary_cross_entropy(pred_mask_min,torch.full_like(pred_mask_min, 0))
+    # print(minloss)
+    return minloss#+maxloss
 
 class bicon_loss(nn.Module):
     def __init__(self):
         super(bicon_loss, self).__init__()
-        self.cross_entropy_loss = nn.BCELoss(reduction='sum')
+        self.cross_entropy_loss = nn.BCELoss()
+        self.dice_loss = dice_loss()
 
         hori_translation = torch.zeros([1,num_class, c_map.shape[3],c_map.shape[3]])
         for i in range(c_map.shape[3]-1):
@@ -79,19 +93,109 @@ class bicon_loss(nn.Module):
         # construct the translation matrix
         self.hori_translation = self.hori_trans.repeat(batch_num,1,1,1).cuda()
         self.verti_translation  = self.verti_trans.repeat(batch_num,1,1,1).cuda()
-
+"""
+2
+BiconNet: An Edge-preserved Connectivity-based Approach for Salient Object Detection
+3
+Ziyun Yang, Somayyeh Soltanian-Zadeh and Sina Farsiu
+4
+Codes from: https://github.com/Zyun-Y/BiconNets
+5
+Paper: https://arxiv.org/abs/2103.00334
+6
+"""
+7
+​
+8
+import numpy as np
+9
+from torch.nn.modules.loss import _Loss
+10
+from torch.autograd import Function, Variable
+11
+import torch.nn as nn
+12
+import torch
+13
+import numpy as np
+14
+from torch.nn.modules.loss import _Loss
+15
+from torch.autograd import Function, Variable
+16
+import torch.nn as nn
+17
+import torch.nn.functional as F
+18
+import matplotlib.pyplot as plt
+19
+from skimage.io import imread, imsave
+20
+import scipy.io as scio
+21
+​
+22
+Directable={'upper_left':[-1,-1],'up':[0,-1],'upper_right':[1,-1],'left':[-1,0],'right':[1,0],'lower_left':[-1,1],'down':[0,1],'lower_right':[1,1]}
+23
+TL_table = ['lower_right','down','lower_left','right','left','upper_right','up','upper_left']
+24
+​
+25
+​
+26
+# hori_translation = torch.zeros([256,400])
+27
+# for i in range(399):
+28
+#     hori_translation[i,i+1] = torch.tensor(1.0)
+29
+# verti_translation = torch.zeros([300,300])
+30
+# for j in range(299):
+31
+#     verti_translation[j,j+1] = torch.tensor(1.0)
+32
+# hori_translation = hori_translation.double()
+33
+# verti_translation = verti_translation.double()
+34
+​
+35
+​
+36
+​
+37
+​
+38
+def edge_loss(glo_map,vote_out,edge,target):
+39
+    pred_mask_min, _ = torch.min(vote_out, dim=1)
+40
+    pred_mask_max,_ = torch.max(vote_out, dim=1)
+41
+    pred_mask_min = 1-pred_mask_min
+42
+    pred_mask_min = pred_mask_min * edge
+43
+    decouple_map = glo_map*(1-edge)+pred_mask_min
+44
+​
+45
+    minloss = F.binary_cross_entropy(decouple_map.unsqueeze(1),target,reduction='sum')
         #bilateral voting
-        vote_out = self.Bilater_voting(c_map)
+        final_pred, bimap = self.Bilater_voting(c_map)
 
-        #global map
-        glo_map, _ = torch.max(vote_out,dim=2)
-        vote_out = vote_out.squeeze(1)
+
+        loss_dice = self.dice_loss(final_pred, target)
+        # vote_out = vote_out.squeeze(1)
         #decouple loss
-        de_loss = edge_loss(glo_map,vote_out,edge,target)
+        decouple_loss = edge_loss(bimap.squeeze(1),con_target)
+
+        bce_loss = self.cross_entropy_loss(final_pred,target)
 
         conmap_l = self.cross_entropy_loss(c_map,con_target)
-        bimap_l = self.cross_entropy_loss(vote_out,con_target)
-        loss =  0.8*conmap_l+de_loss+0.2*bimap_l
+        bimap_l = self.cross_entropy_loss(bimap.squeeze(1),con_target)
+        loss =  0.8*conmap_l+decouple_loss+0.2*bimap_l + bce_loss + loss_dice ## add dice loss if needed for biomedical data
 
         return loss
     
@@ -117,6 +221,6 @@ class bicon_loss(nn.Module):
             shifted_c_map[:,:,i] = self.shift_diag(c_map[:,:,7-i].clone(),Directable[TL_table[i]])
         vote_out = c_map*shifted_c_map
 
-#         pred_mask,_ = torch.max(vote_out,dim=2)
+        pred_mask,_ = torch.max(vote_out,dim=2)
         # print(pred_mask)
-        return vote_out#, bimap
+        return pred_mask, vote_out#, bimap
