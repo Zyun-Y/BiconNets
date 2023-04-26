@@ -72,8 +72,8 @@ class bicon_loss(nn.Module):
         verti_translation = torch.zeros([c_map.shape[0],num_class,c_map.shape[2],c_map.shape[2]])
         for j in range(c_map.shape[2]-1):
             verti_translation[:,:,j,j+1] = torch.tensor(1.0)
-        self.hori_translation = hori_translation.float()
-        self.verti_translation = verti_translation.float()
+        self.hori_translation = hori_translation.float().cuda()
+        self.verti_translation = verti_translation.float().cuda()
 
         #bilateral voting
         vote_out = self.Bilater_voting(c_map)
