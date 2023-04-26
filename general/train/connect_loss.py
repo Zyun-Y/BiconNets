@@ -103,7 +103,7 @@ class bicon_loss(nn.Module):
 
 
     def Bilater_voting(self,c_map):
-        c_map = c_map.view(c_map.shape[0],self.class_num,8,c_map.shape[2],c_map.shape[3])
+        c_map = c_map.view(c_map.shape[0],-1,8,c_map.shape[2],c_map.shape[3])
         batch,class_num,channel, row, column = c_map.size()
 
 
