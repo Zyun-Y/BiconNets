@@ -49,10 +49,21 @@ class bicon_loss(nn.Module):
     def __init__(self):
         super(bicon_loss, self).__init__()
         self.cross_entropy_loss = nn.BCELoss(reduction='sum')
+
+        hori_translation = torch.zeros([1,num_class, c_map.shape[3],c_map.shape[3]])
+        for i in range(c_map.shape[3]-1):
+            hori_translation[:,:,i,i+1] = torch.tensor(1.0)
+        verti_translation = torch.zeros([1,num_class,c_map.shape[2],c_map.shape[2]])
+        for j in range(c_map.shape[2]-1):
+            verti_translation[:,:,j,j+1] = torch.tensor(1.0)
+        self.hori_trans = hori_translation.float().cuda()
+        self.verti_trans = verti_translation.float().cuda()
+
         
     def forward(self, c_map, target, con_target):
         num_class = 1
-        
+        batch_num = c_map.shape[0]
+
         con_target = con_target.type(torch.FloatTensor).cuda()
 
         #find edge ground truth
@@ -66,14 +77,8 @@ class bicon_loss(nn.Module):
         c_map = F.sigmoid(c_map)
         
         # construct the translation matrix
-        hori_translation = torch.zeros([c_map.shape[0],num_class, c_map.shape[3],c_map.shape[3]])
-        for i in range(c_map.shape[3]-1):
-            hori_translation[:,:,i,i+1] = torch.tensor(1.0)
-        verti_translation = torch.zeros([c_map.shape[0],num_class,c_map.shape[2],c_map.shape[2]])
-        for j in range(c_map.shape[2]-1):
-            verti_translation[:,:,j,j+1] = torch.tensor(1.0)
-        self.hori_translation = hori_translation.float().cuda()
-        self.verti_translation = verti_translation.float().cuda()
+        self.hori_translation = self.hori_trans.repeat(batch_num,1,1,1).cuda()
+        self.verti_translation  = self.verti_trans.repeat(batch_num,1,1,1).cuda()
 
         #bilateral voting
         vote_out = self.Bilater_voting(c_map)
