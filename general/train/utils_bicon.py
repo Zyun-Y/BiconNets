@@ -81,7 +81,7 @@ def shift_diag(img,shift,hori_translation,verti_translation):
         batch,class_num, row, column = img.size()
 
         if shift[0]: ###horizontal
-            img = torch.bmm(img.view(-1,row,column),.hori_translation.view(-1,column,column)) if shift[0]==1 else torch.bmm(img.view(-1,row,column),hori_translation.transpose(3,2).view(-1,column,column))
+            img = torch.bmm(img.view(-1,row,column),hori_translation.view(-1,column,column)) if shift[0]==1 else torch.bmm(img.view(-1,row,column),hori_translation.transpose(3,2).view(-1,column,column))
         if shift[1]: ###vertical
             img = torch.bmm(verti_translation.transpose(3,2).view(-1,row,row),img.view(-1,row,column)) if shift[1]==1 else torch.bmm(verti_translation.view(-1,row,row),img.view(-1,row,column))
         return img.view(batch,class_num, row, column)
