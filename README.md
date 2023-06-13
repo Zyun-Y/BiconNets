@@ -9,7 +9,8 @@ Paper at: https://arxiv.org/abs/2103.00334
 
 --------------------------------------------------------------------------
 
-
+Updates:
+06/12/2023: Major bugs observed. Will fix soon.
 
 Requirement: Pytorch 1.7.1
 
