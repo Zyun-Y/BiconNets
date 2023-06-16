@@ -237,6 +237,7 @@ class Data(Dataset):
             return image, mask.unsqueeze(0), conn
         else:
             image, mask = self.normalize(image, mask)
+            image, mask = self.resize(image, mask)
             image, mask = self.totensor_test(image, mask)
             return image, mask.unsqueeze(0)
 
