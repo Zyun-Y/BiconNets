@@ -42,9 +42,8 @@ for exp_id in range(1):
 
 
     ### your network, make sure the class number is n*8
-    model = GCPANet(8)
+    # e.g., model = GCPANet(8)
 
-    model.load_state_dict(torch.load("/hpc/home/zy104/Downloads/GCPANet_model.pth"))
     #your hyperparameter
     solver = Solver()
 
