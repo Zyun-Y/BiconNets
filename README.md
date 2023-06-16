@@ -7,7 +7,7 @@ Recently accepted by Pattern Recognition.
 
 Paper at: https://arxiv.org/abs/2103.00334
 
-**BiconNet also achieved great improvements on medical segmentation. For a medical version code, please visit [BiconNet-Medical](https://github.com/Zyun-Y/BiconNet-Medical)**
+**BiconNet also achieved great improvements on medical segmentation and multi-class, please visit [BiconNet-Medical](https://github.com/Zyun-Y/BiconNet-Medical) for details**
 
 **Please also check our latest [DconnNet](https://github.com/Zyun-Y/DconnNet) paper on CVPR 2023**
 
