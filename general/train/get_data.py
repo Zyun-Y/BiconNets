@@ -14,12 +14,12 @@ import torch.nn.functional as F
 from dataset import Data
 
 ## put your data here ###
-root = '/data/DUTS/DUTS-TR'
-ECSSD = '/data/ECSSD'
-pascal = '/data/PASCAL'
-omron = '/data/DUTS/DUT-OMRON'
-hku = '//data/HKU-IS'
-duts = '/data/DUTS/DUTS-TE'
+root = '/hpc/home/zy104/storage/SOD/DUTS-TR'
+ECSSD = '/hpc/home/zy104/storage/SOD/ECSSD'
+pascal = '/hpc/home/zy104/storage/SOD/PASCALS'
+omron = '/hpc/home/zy104/storage/SOD/DUT-O'
+hku = '/hpc/home/zy104/storage/SOD/HKU-IS'
+duts = '/hpc/home/zy104/storage/SOD/DUTS-TE'
 
 data_dict = {'train':root, 'ECSSD':ECSSD, 'PASCAL': pascal, 'HKU':hku, 'DUTS':duts,'DUT-O':omron}
 
@@ -38,12 +38,12 @@ class Config(object):
         else:
             return None
 
-def get_data(mode,data):
+def get_data(config,mode,data):
 
-	cfg_test = Config(datapath=data_dict[data],mode=data)
+	cfg_test = Config(datapath=data_dict[data],mode=data, size = config.size)
 	data_test = Data(cfg_test,mode)
 
-	cfg    = Config(datapath=data_dict['train'], mode='train')
+	cfg    = Config(datapath=data_dict['train'], mode='train', size = config.size)
 	data_train   = Data(cfg,mode)
 	# print(cfg.datapath)
 	# print(data)

@@ -40,7 +40,7 @@ class Solver(object):
     def train(self, model, train_loader, val_loader,cfg):
 
         # replace your loss function with a bicon loss here
-        self.loss_func = bicon_loss()
+        self.loss_func = bicon_loss(cfg.size)
 
         num_epochs = cfg.epoch
         exp_id = cfg.exp_id
@@ -77,9 +77,9 @@ class Solver(object):
         best_mae = 1
         step=0
         m=0
-        db_size = len(train_loader)/real_batch
+        # db_size = len(train_loader)/real_batch
 
-        
+        self.test_epoch(model,val_loader,0,exp_id)
         for epoch in range(num_epochs):
             model.train()
             total_loss = 0
@@ -95,7 +95,7 @@ class Solver(object):
                 X = Variable(sample_batched[0])
                 y = Variable(sample_batched[1])
                 connect = Variable(sample_batched[2])
-
+                # print(X.shape, y.shape)
                 X= X.cuda()
                 y = y.long().cuda()
                 connect = connect.cuda()
@@ -104,8 +104,10 @@ class Solver(object):
                 out = model(X)
 
                 loss_iter = self.loss_func(out, y,connect)
-
-                loss = loss_iter/real_batch
+                if real_batch!= 0:
+                    loss = loss_iter/real_batch
+                else:
+                    loss = loss_iter
                 total_loss += loss.item()
                 iter_num +=1
 
@@ -113,15 +115,24 @@ class Solver(object):
 
                 # Update gradient every real_batch batch. Use this part if you want to train your network with the original image size. 
                 # Otherwise just ignore this and use the normal way to update gradient.
-                if iter_num%real_batch ==0:
+                if real_batch != 0:
+                    if iter_num%real_batch ==0:
 
+                        m +=1
+                        optim.step()
+                        optim.zero_grad()
+                        iter_num=0
+
+                        if m == 10:
+                            print('%s | step:%d/%d/%d/%d | lr=%.6f | loss=%.6f'%(datetime.datetime.now(), step/real_batch,curr_step/real_batch, epoch+1,num_epochs, optim.param_groups[0]['lr'], total_loss))
+                            m=0
+                        total_loss=0
+                else:
                     m +=1
                     optim.step()
                     optim.zero_grad()
-                    iter_num=0
-
                     if m == 10:
-                        print('%s | step:%d/%d/%d/%d | lr=%.6f | loss=%.6f'%(datetime.datetime.now(), step/real_batch,curr_step/real_batch, epoch+1,num_epochs, optim.param_groups[0]['lr'], total_loss))
+                        print('%s | step:%d/%d/%d/%d | lr=%.6f | loss=%.6f'%(datetime.datetime.now(), step,curr_step, epoch+1,num_epochs, optim.param_groups[0]['lr'], total_loss))
                         m=0
                     total_loss=0
 

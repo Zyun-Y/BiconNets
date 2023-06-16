@@ -29,7 +29,7 @@ class Normalize(object):
         return image, mask
 
 class RandomCrop(object):
-    def __call__(self, image, mask, conn,size):
+    def __call__(self, image, mask,size):
         H,W,_   = image.shape
         offsetH = H-size[0]
         offsetW = W-size[0]
@@ -40,47 +40,47 @@ class RandomCrop(object):
         h_end = randh+size[0]
         w_end = randw+size[1]
 
-        return image[randh:h_end,randw:w_end, :], mask[randh:h_end,randw:w_end], conn[:,randh:h_end,randw:w_end]
+        return image[randh:h_end,randw:w_end, :], mask[randh:h_end,randw:w_end]
 
 class RandomCrop_pool(object):
-    def __call__(self, image, mask, conn):
+    def __call__(self, image, mask):
         H,W,_   = image.shape
         randw   = np.random.randint(W/8)
         randh   = np.random.randint(H/8)
         offseth = 0 if randh == 0 else np.random.randint(randh)
         offsetw = 0 if randw == 0 else np.random.randint(randw)
         p0, p1, p2, p3 = offseth, H+offseth-randh, offsetw, W+offsetw-randw
-        return image[p0:p1,p2:p3, :], mask[p0:p1,p2:p3], conn[:,p0:p1,p2:p3]
+        return image[p0:p1,p2:p3, :], mask[p0:p1,p2:p3]
 
 class RandomFlip(object):
-    def __call__(self, image, mask,conn):
+    def __call__(self, image, mask):
         if np.random.randint(2)==0:
-            return image[:,::-1,:], mask[:, ::-1], conn[:,:, ::-1]
+            return image[:,::-1,:], mask[:, ::-1]
         else:
-            return image, mask,conn
+            return image, mask
 
 class Resize(object):
     def __init__(self, H, W):
         self.H = H
         self.W = W
 
-    def __call__(self, image, mask,mode):
+    def __call__(self, image, mask):
         image = cv2.resize(image, dsize=(self.W, self.H), interpolation=cv2.INTER_LINEAR)
         mask  = cv2.resize( mask, dsize=(self.W, self.H), interpolation=cv2.INTER_LINEAR)
-        if mode == 'train':
-            conn = connectivity_matrix(mask)
+        # if mode == 'train':
+        #     conn = connectivity_matrix(mask)
             # print(conn.shape)
             # print(mask.shape)
-            return image, mask,conn
+            # return image, mask
         return image, mask
 
 class ToTensor(object):
-    def __call__(self, image, mask,conn):
+    def __call__(self, image, mask):
         image = torch.Tensor(image.copy())
         image = image.permute(2, 0, 1)
         mask  = torch.Tensor(mask.copy())
-        conn  = torch.Tensor(conn.copy())
-        return image, mask, conn
+        # conn  = torch.Tensor(conn.copy())
+        return image, mask
 
 class ToTensor_test(object):
     def __call__(self, image, mask):
@@ -117,7 +117,7 @@ class Data(Dataset):
         
         self.randomcrop_pool = RandomCrop_pool()
         self.randomflip = RandomFlip()
-        self.resize     = Resize(320, 320)
+        self.resize     = Resize(cfg.size[0],cfg.size[1])
         self.totensor   = ToTensor()
         self.totensor_test=ToTensor_test()
         self.img_ls = []
@@ -226,10 +226,14 @@ class Data(Dataset):
         if self.cfg.mode=='train':
             
             image, mask = self.normalize(image, mask)
+            image, mask = self.randomcrop_pool(image, mask)
+            image, mask = self.randomflip(image, mask)
+            image, mask = self.resize(image, mask)
+            image, mask =self.totensor(image, mask)
+            ## remember to threshold if resize mask
+            mask = (mask>0.5).float()
+
             conn = sal2conn(mask)
-            image, mask,conn = self.randomcrop_pool(image, mask,conn)
-            image, mask,conn = self.randomflip(image, mask,conn)
-            image, mask,conn =self.totensor(image, mask,conn)
             return image, mask.unsqueeze(0), conn
         else:
             image, mask = self.normalize(image, mask)

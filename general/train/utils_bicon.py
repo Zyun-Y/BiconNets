@@ -47,7 +47,7 @@ def sal2conn(mask):
     conn[5] = mask*up_right
     conn[6] = mask*up
     conn[7] = mask*up_left
-    # conn = conn.astype(np.float32)
+    conn = conn.astype(np.float32)
     return conn
 
 
@@ -57,9 +57,9 @@ def bv_test(output_test):
     generate the continous global map from output connectivity map as final saliency output 
     via bilateral voting
     '''
-    num_class = 1
+
     #construct the translation matrix
-    
+    num_class = 1
     hori_translation = torch.zeros([output_test.shape[0],num_class,output_test.shape[3],output_test.shape[3]])
     for i in range(output_test.shape[3]-1):
         hori_translation[:,:,i,i+1] = torch.tensor(1.0)
@@ -70,7 +70,7 @@ def bv_test(output_test):
 
     hori_translation = hori_translation.float().cuda()
     verti_translation = verti_translation.float().cuda()
-
+    output_test = F.sigmoid(output_test)
     pred =ConMap2Mask_prob(output_test,hori_translation,verti_translation)
     return pred
 
@@ -93,7 +93,7 @@ def ConMap2Mask_prob(c_map,hori_translation,verti_translation):
 
     shifted_c_map = torch.zeros(c_map.size()).cuda()
     for i in range(8):
-        shifted_c_map[:,:,i] = shift_diag(c_map[:,:,7-i].clone(),Directable[TL_table[i]])
+        shifted_c_map[:,:,i] = shift_diag(c_map[:,:,7-i].clone(),Directable[TL_table[i]],hori_translation,verti_translation)
     vote_out = c_map*shifted_c_map
 
     pred_mask,_ = torch.max(vote_out,dim=2)

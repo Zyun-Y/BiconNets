@@ -59,23 +59,23 @@ def edge_loss(vote_out,con_target):
     return minloss#+maxloss
 
 class bicon_loss(nn.Module):
-    def __init__(self):
+    def __init__(self, size):
         super(bicon_loss, self).__init__()
         self.cross_entropy_loss = nn.BCELoss()
         self.dice_loss = dice_loss()
-
-        hori_translation = torch.zeros([1,num_class, c_map.shape[3],c_map.shape[3]])
-        for i in range(c_map.shape[3]-1):
+        self.num_class = 1
+        hori_translation = torch.zeros([1,self.num_class, size[1],size[1]])
+        for i in range(size[1]-1):
             hori_translation[:,:,i,i+1] = torch.tensor(1.0)
-        verti_translation = torch.zeros([1,num_class,c_map.shape[2],c_map.shape[2]])
-        for j in range(c_map.shape[2]-1):
+        verti_translation = torch.zeros([1,self.num_class,size[0],size[0]])
+        for j in range(size[0]-1):
             verti_translation[:,:,j,j+1] = torch.tensor(1.0)
         self.hori_trans = hori_translation.float().cuda()
         self.verti_trans = verti_translation.float().cuda()
 
         
     def forward(self, c_map, target, con_target):
-        num_class = 1
+        
         batch_num = c_map.shape[0]
 
         con_target = con_target.type(torch.FloatTensor).cuda()
@@ -96,10 +96,11 @@ class bicon_loss(nn.Module):
 
         final_pred, bimap = self.Bilater_voting(c_map)
 
-
+        # apply any loss you want below using final_pred, e.g., dice loss.
         loss_dice = self.dice_loss(final_pred, target)
         # vote_out = vote_out.squeeze(1)
         #decouple loss
+        # print(c_map.max(),bimap.max(),final_pred.max())
         decouple_loss = edge_loss(bimap.squeeze(1),con_target)
 
         bce_loss = self.cross_entropy_loss(final_pred,target)
@@ -107,7 +108,7 @@ class bicon_loss(nn.Module):
         conmap_l = self.cross_entropy_loss(c_map,con_target)
         bimap_l = self.cross_entropy_loss(bimap.squeeze(1),con_target)
         loss =  0.8*conmap_l+decouple_loss+0.2*bimap_l + bce_loss + loss_dice ## add dice loss if needed for biomedical data
-
+        # print(loss)
         return loss
     
     def shift_diag(self,img,shift):
