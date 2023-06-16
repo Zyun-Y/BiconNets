@@ -47,7 +47,7 @@ def sal2conn(mask):
     conn[5] = mask*up_right
     conn[6] = mask*up
     conn[7] = mask*up_left
-    conn = conn.astype(np.float32)
+    conn = conn.float()
     return conn
 
 
